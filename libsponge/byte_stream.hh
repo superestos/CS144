@@ -2,6 +2,8 @@
 #define SPONGE_LIBSPONGE_BYTE_STREAM_HH
 
 #include <string>
+#include <list>
+#include <stdlib.h>
 
 //! \brief An in-order byte stream.
 
@@ -9,19 +11,10 @@
 //! side.  The byte stream is finite: the writer can end the input,
 //! and then no more bytes can be written.
 class ByteStream {
-  private:
-    // Your code here -- add private members as necessary.
-
-    // Hint: This doesn't need to be a sophisticated data structure at
-    // all, but if any of your tests are taking longer than a second,
-    // that's a sign that you probably want to keep exploring
-    // different approaches.
-
-    bool _error{};  //!< Flag indicating that the stream suffered an error.
-
   public:
     //! Construct a stream with room for `capacity` bytes.
-    ByteStream(const size_t capacity);
+    ByteStream(const size_t capacity): buffer(new char[capacity+1]), size(capacity+1), \
+     front(0), back(0), total_read(0), total_written(0), end(false) {};
 
     //! \name "Input" interface for the writer
     //!@{
@@ -80,6 +73,24 @@ class ByteStream {
     //! Total number of bytes popped
     size_t bytes_read() const;
     //!@}
+
+  private:
+    char* buffer;
+    size_t size;
+    size_t front;
+    size_t back;
+    mutable size_t total_read;
+    mutable size_t total_written;
+    bool end;
+
+    // Your code here -- add private members as necessary.
+
+    // Hint: This doesn't need to be a sophisticated data structure at
+    // all, but if any of your tests are taking longer than a second,
+    // that's a sign that you probably want to keep exploring
+    // different approaches.
+
+    bool _error{};  //!< Flag indicating that the stream suffered an error.
 };
 
 #endif  // SPONGE_LIBSPONGE_BYTE_STREAM_HH
