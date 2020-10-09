@@ -63,5 +63,5 @@ size_t StreamReassembler::unassembled_bytes() const {
 }
 
 bool StreamReassembler::empty() const { 
-    return _output.buffer_empty(); 
+    return ranges.empty(); 
 }
