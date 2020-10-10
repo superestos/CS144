@@ -55,6 +55,8 @@ class StreamReassembler {
     //! should only be counted once for the purpose of this function.
     size_t unassembled_bytes() const;
 
+    size_t assembled_bytes() const { return total_assembled; }
+
     //! \brief Is the internal state empty (other than the output stream)?
     //! \returns `true` if no substrings are waiting to be assembled
     bool empty() const;
