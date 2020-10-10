@@ -55,7 +55,7 @@ size_t StreamReassembler::unassembled_bytes() const {
     size_t end = it->first;
     for(; it != ranges.end(); ++it) {
         if(it->second > end) {
-            sum += it->second - end;
+            sum += it->second - std::max(it->first, end);
         }
         end = std::max(it->second, end);
     }
