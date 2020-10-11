@@ -19,7 +19,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
         stream_index = 0;
     }
     if(connection_state == SYN_RECV && seg.header().fin) {
-        connection_state = FIN_WAIT;
+        connection_state = FIN_RECV;
     }
 
     size_t index = unwrap(seg.header().seqno, _isn, stream_index);
@@ -28,7 +28,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     stream_index += seg.payload().size(); // handle seq number
     absolute_shift += (seg.header().syn ? 1 : 0);
 
-    if(_reassembler.empty() && connection_state == FIN_WAIT) {
+    if(_reassembler.empty() && connection_state == FIN_RECV) {
         absolute_shift += 1;
     }
 }

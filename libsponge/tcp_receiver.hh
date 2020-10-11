@@ -22,7 +22,7 @@ class TCPReceiver {
     //! The maximum number of bytes we'll store.
     size_t _capacity;
 
-    enum ConnectionState {LISTEN, SYN_RECV, FIN_RECV, FIN_WAIT} connection_state;
+    enum ConnectionState {LISTEN, SYN_RECV, FIN_RECV} connection_state;
 
     // Initial sequence number
     WrappingInt32 _isn;
