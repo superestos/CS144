@@ -24,15 +24,11 @@ class TCPReceiver {
 
     enum ConnectionState {LISTEN, SYN_RECV, FIN_RECV, FIN_WAIT} connection_state;
 
-    enum ConnectionState prev_state;
-
     // Initial sequence number
     WrappingInt32 _isn;
 
-    uint64_t absolute_seqno;
+    uint64_t absolute_shift;
     uint64_t stream_index;
-
-    static std::map<enum ConnectionState, size_t> offset;
    
   public:
     //! \brief Construct a TCP receiver
@@ -40,7 +36,7 @@ class TCPReceiver {
     //! \param capacity the maximum number of bytes that the receiver will
     //!                 store in its buffers at any give time.
     TCPReceiver(const size_t capacity) : _reassembler(capacity), _capacity(capacity),
-      connection_state(LISTEN), prev_state(LISTEN), _isn(0), absolute_seqno(0), stream_index(0) {}
+      connection_state(LISTEN), _isn(0), absolute_shift(0), stream_index(0) {}
 
     //! \name Accessors to provide feedback to the remote TCPSender
     //!@{
