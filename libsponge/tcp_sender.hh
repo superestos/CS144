@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <queue>
+#include <map>
 
 //! \brief The "sender" part of a TCP implementation.
 
@@ -26,11 +27,24 @@ class TCPSender {
     //! retransmission timer for the connection
     unsigned int _initial_retransmission_timeout;
 
+    unsigned int _retransmission_timeout;
+
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+
+    uint64_t _ack_seqno{0};
+
+    uint64_t _windows_size{1};
+
+    uint64_t _timer{0};
+
+    // key: expired time
+    std::map<uint64_t, TCPSegment> _unack_segments;
+
+    enum ConnectionState {CLOSED, SYN_SENT, SYN_ACKED, FIN_SENT, FIN_ACKED} connection_state{CLOSED};
 
   public:
     //! Initialize a TCPSender
