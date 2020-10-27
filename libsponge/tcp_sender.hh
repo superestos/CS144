@@ -41,6 +41,8 @@ class TCPSender {
 
     uint64_t _timer{0};
 
+    uint32_t _consecutive_retransmissions{0};
+
     // key: expired time
     std::map<uint64_t, TCPSegment> _unack_segments;
 

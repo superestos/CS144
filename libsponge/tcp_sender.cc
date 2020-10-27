@@ -29,7 +29,7 @@ uint64_t TCPSender::bytes_in_flight() const {
 }
 
 void TCPSender::fill_window() {
-    while(bytes_in_flight() < _windows_size && (!_stream.buffer_empty() || connection_state == CLOSED)) {
+    while((bytes_in_flight() < _windows_size && !_stream.buffer_empty()) || connection_state == CLOSED || (connection_state == SYN_SENT && _stream.eof()) ) {
         TCPSegment segment;
         WrappingInt32 seqno = wrap(_next_seqno, _isn);
         segment.header().seqno = seqno;
@@ -39,11 +39,18 @@ void TCPSender::fill_window() {
             connection_state = SYN_SENT;
         }
 
+        if(connection_state == SYN_SENT && _stream.eof()) {
+            segment.header().fin = true;
+            connection_state = FIN_SENT;
+        }
+
         size_t len = std::min(_windows_size - bytes_in_flight(), TCPConfig::MAX_PAYLOAD_SIZE);
-        segment.payload() = _stream.read(len);
+        if(len > 0)
+            segment.payload() = _stream.read(len);
         _next_seqno += segment.length_in_sequence_space();
 
         _segments_out.push(segment);
+        _unack_segments[_timer + _retransmission_timeout] = segment;
     }
 }
 
@@ -52,6 +59,7 @@ void TCPSender::fill_window() {
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
     _ack_seqno = unwrap(ackno, _isn, _stream.bytes_read());
     _windows_size = window_size;
+    _consecutive_retransmissions = 0;
 }
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
@@ -62,6 +70,7 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
         auto segment = it->second;
         uint64_t seqno = unwrap(segment.header().seqno, _isn, _stream.bytes_read());
         if(seqno >= _ack_seqno) {
+            _consecutive_retransmissions++;
             _segments_out.push(segment);
             _unack_segments[_timer + _retransmission_timeout] = segment;
         }
@@ -71,7 +80,7 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
 }
 
 unsigned int TCPSender::consecutive_retransmissions() const {
-    return 0; 
+    return _consecutive_retransmissions; 
 }
 
 void TCPSender::send_empty_segment() {
