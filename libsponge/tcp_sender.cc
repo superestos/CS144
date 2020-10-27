@@ -58,7 +58,7 @@ void TCPSender::fill_window() {
         }
 
         _segments_out.push(segment);
-        _unack_segments[_timer + _retransmission_timeout] = segment;
+        _unack_segments.insert({_timer + _retransmission_timeout, segment});
     }
 }
 
@@ -85,7 +85,7 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
 
             _consecutive_retransmissions++;
             _segments_out.push(segment);
-            _unack_segments[_timer + _retransmission_timeout] = segment;
+            _unack_segments.insert({_timer + _retransmission_timeout, segment});
         }
         
         _unack_segments.erase(it++);

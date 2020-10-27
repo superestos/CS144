@@ -44,7 +44,7 @@ class TCPSender {
     unsigned int _consecutive_retransmissions{0};
 
     // key: expired time
-    std::map<uint64_t, TCPSegment> _unack_segments;
+    std::multimap<uint64_t, TCPSegment> _unack_segments;
 
     enum ConnectionState {CLOSED, SYN_SENT, FIN_SENT} connection_state{CLOSED};
 
