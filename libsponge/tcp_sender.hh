@@ -8,7 +8,6 @@
 
 #include <functional>
 #include <queue>
-#include <map>
 
 //! \brief The "sender" part of a TCP implementation.
 
@@ -35,16 +34,17 @@ class TCPSender {
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
 
+    //! the (absolute) sequence number for the largest byte to be ack
     uint64_t _ack_seqno{0};
 
     uint64_t _windows_size{1};
 
-    uint64_t _timer{0};
+    size_t _timer{0};
 
     unsigned int _consecutive_retransmissions{0};
 
     // key: expired time
-    std::multimap<uint64_t, TCPSegment> _unack_segments;
+    std::list<std::pair<size_t, TCPSegment>> _unack_segments;
 
     enum ConnectionState {CLOSED, SYN_SENT, FIN_SENT} connection_state{CLOSED};
 

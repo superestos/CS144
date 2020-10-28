@@ -58,7 +58,7 @@ void TCPSender::fill_window() {
         }
 
         _segments_out.push(segment);
-        _unack_segments.insert({_timer, segment});
+        _unack_segments.push_back({_timer, segment});
     }
 }
 
@@ -71,6 +71,18 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         _consecutive_retransmissions = 0;
 
         _rto= _initial_retransmission_timeout;
+
+        for(auto it = _unack_segments.begin(); it != _unack_segments.end();) {
+            auto segment = it->second;
+            uint64_t seqno = unwrap(segment.header().seqno, _isn, _stream.bytes_read());
+
+            if(ack_seqno > seqno) {
+                _unack_segments.erase(it++);
+            }
+            else {
+                break;
+            }
+        }
     }
 
     _windows_size = window_size;
@@ -79,24 +91,17 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) { 
     _timer += ms_since_last_tick;
-    bool retx = false;
-    
-    for(auto it = _unack_segments.begin(); it != _unack_segments.end() && it->first + _rto <= _timer;) {
-        auto segment = it->second;
-        uint64_t seqno = unwrap(segment.header().seqno, _isn, _stream.bytes_read());
-        if(seqno >= _ack_seqno) {
-            retx = true;
 
-            _consecutive_retransmissions++;
-            _segments_out.push(segment);
-            _unack_segments.insert({_timer, segment});
-        }
-        
-        _unack_segments.erase(it++);
-    }
-
-    if(retx)
+    auto it = _unack_segments.begin();
+    if(it != _unack_segments.end() && it->first + _rto <= _timer) {
         _rto *= 2;
+
+        _consecutive_retransmissions++;
+        _segments_out.push(it->second);
+        for(; it != _unack_segments.end(); ++it) {
+            it->first = _timer;
+        }
+    }
 }
 
 unsigned int TCPSender::consecutive_retransmissions() const {
