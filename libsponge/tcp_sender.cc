@@ -20,7 +20,7 @@ using namespace std;
 TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const std::optional<WrappingInt32> fixed_isn)
     : _isn(fixed_isn.value_or(WrappingInt32{random_device()()}))
     , _initial_retransmission_timeout{retx_timeout}
-    , _retransmission_timeout{retx_timeout}
+    , _rto{retx_timeout}
     , _stream(capacity) 
     , _unack_segments() {}
 
@@ -58,38 +58,45 @@ void TCPSender::fill_window() {
         }
 
         _segments_out.push(segment);
-        _unack_segments.insert({_timer + _retransmission_timeout, segment});
+        _unack_segments.insert({_timer, segment});
     }
 }
 
 //! \param ackno The remote receiver's ackno (acknowledgment number)
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
-    _ack_seqno = unwrap(ackno, _isn, _stream.bytes_read());
-    _windows_size = window_size;
-    _consecutive_retransmissions = 0;
+    uint64_t ack_seqno = unwrap(ackno, _isn, _stream.bytes_read());
+    if(ack_seqno <= _next_seqno && ack_seqno > _ack_seqno) {
+        _ack_seqno = ack_seqno;
+        _consecutive_retransmissions = 0;
 
-    _retransmission_timeout = _initial_retransmission_timeout;
+        _rto= _initial_retransmission_timeout;
+    }
+
+    _windows_size = window_size;
 }
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) { 
     _timer += ms_since_last_tick;
-    unsigned int double_rto = _retransmission_timeout * 2;
+    bool retx = false;
     
-    for(auto it = _unack_segments.begin(); it != _unack_segments.end() && it->first <= _timer;) {
+    for(auto it = _unack_segments.begin(); it != _unack_segments.end() && it->first + _rto <= _timer;) {
         auto segment = it->second;
         uint64_t seqno = unwrap(segment.header().seqno, _isn, _stream.bytes_read());
         if(seqno >= _ack_seqno) {
-            _retransmission_timeout = double_rto;
+            retx = true;
 
             _consecutive_retransmissions++;
             _segments_out.push(segment);
-            _unack_segments.insert({_timer + _retransmission_timeout, segment});
+            _unack_segments.insert({_timer, segment});
         }
         
         _unack_segments.erase(it++);
     }
+
+    if(retx)
+        _rto *= 2;
 }
 
 unsigned int TCPSender::consecutive_retransmissions() const {

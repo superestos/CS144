@@ -70,6 +70,8 @@ class TCPTestHarness {
     //! Construct a test harness, optionally passing a configuration to the TCPConnection under test
     explicit TCPTestHarness(const TCPConfig &c_fsm = {}) : _fsm(c_fsm) {}
 
+    TCPTestHarness(const TCPTestHarness&);
+
     //! construct a FIN segment and inject it into TCPConnection
     void send_fin(const WrappingInt32 seqno, const std::optional<WrappingInt32> ackno = {});
 

@@ -27,7 +27,7 @@ class TCPSender {
     //! retransmission timer for the connection
     unsigned int _initial_retransmission_timeout;
 
-    unsigned int _retransmission_timeout;
+    unsigned int _rto;
 
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
