@@ -44,12 +44,14 @@ class TCPSender {
     unsigned int _consecutive_retransmissions{0};
 
     // key: expired time
-    std::list<std::pair<size_t, TCPSegment>> _unack_segments;
+    std::list<TCPSegment> _unack_segments;
 
     enum ConnectionState {CLOSED, SYN_SENT, FIN_SENT} connection_state{CLOSED};
 
     bool SYN_condition();
     bool FIN_condition();
+
+    void send_new_segment();
 
   public:
     //! Initialize a TCPSender
