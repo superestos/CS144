@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <memory>
 #include <map>
 
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
@@ -20,7 +21,7 @@ class StreamReassembler {
     size_t eof_end;
 
     std::map<size_t, size_t> ranges;
-    char* buffer;
+    std::unique_ptr<char[]> buffer;
     
 
     StreamReassembler(const StreamReassembler&);

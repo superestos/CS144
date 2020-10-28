@@ -24,18 +24,43 @@ size_t TCPConnection::unassembled_bytes() const {
     return _receiver.unassembled_bytes();
 }
 
-size_t TCPConnection::time_since_last_segment_received() const { return {}; }
+size_t TCPConnection::time_since_last_segment_received() const {
+    return _received_timer;
+}
 
-void TCPConnection::segment_received(const TCPSegment &seg) { DUMMY_CODE(seg); }
+void TCPConnection::segment_received(const TCPSegment &seg) {
+    if(seg.header().fin) {
+
+    }
+    if(seg.header().ack) {
+        _sender.ack_received(seg.header().ackno, seg.header().win);
+    }
+    _receiver.segment_received(seg);
+    _received_timer = 0;
+}
+
+void TCPConnection::segment_sent() {
+    auto seg = _sender.segments_out().front();
+    _sender.segments_out().pop();
+
+    //seg.header().
+    //_segments_out.push();
+    
+}
 
 bool TCPConnection::active() const { return {}; }
 
 size_t TCPConnection::write(const string &data) {
-    return _sender.stream_in().write(data);
+    size_t len = _sender.stream_in().write(data);
+    _sender.fill_window();
+    return len;
 }
 
 //! \param[in] ms_since_last_tick number of milliseconds since the last call to this method
-void TCPConnection::tick(const size_t ms_since_last_tick) { DUMMY_CODE(ms_since_last_tick); }
+void TCPConnection::tick(const size_t ms_since_last_tick) {
+    _received_timer += ms_since_last_tick;
+    _sender.tick(ms_since_last_tick);
+}
 
 void TCPConnection::end_input_stream() {
     _sender.stream_in().end_input();
@@ -43,6 +68,7 @@ void TCPConnection::end_input_stream() {
 
 void TCPConnection::connect() {
     _sender.send_empty_segment();
+    
 }
 
 TCPConnection::~TCPConnection() {
