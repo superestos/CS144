@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <memory>
 #include <stdlib.h>
 
 //! \brief An in-order byte stream.
@@ -75,7 +76,7 @@ class ByteStream {
     //!@}
 
   private:
-    char* buffer;
+    std::unique_ptr<char[]> buffer;
     size_t size;
     size_t front;
     size_t back;
