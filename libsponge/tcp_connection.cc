@@ -43,8 +43,12 @@ void TCPConnection::segment_sent() {
     auto seg = _sender.segments_out().front();
     _sender.segments_out().pop();
 
-    //seg.header().
-    //_segments_out.push();
+    if(_receiver.ackno().has_value()) {
+        seg.header().ackno = _receiver.ackno().value();
+    }
+    seg.header().win = _receiver.window_size();
+
+    _segments_out.push(seg);
     
 }
 
@@ -53,6 +57,8 @@ bool TCPConnection::active() const { return {}; }
 size_t TCPConnection::write(const string &data) {
     size_t len = _sender.stream_in().write(data);
     _sender.fill_window();
+    while(!_sender.segments_out().empty())
+        segment_sent();
     return len;
 }
 
@@ -68,7 +74,7 @@ void TCPConnection::end_input_stream() {
 
 void TCPConnection::connect() {
     _sender.send_empty_segment();
-    
+    segment_sent();    
 }
 
 TCPConnection::~TCPConnection() {
