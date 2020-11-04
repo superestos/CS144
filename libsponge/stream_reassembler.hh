@@ -22,10 +22,6 @@ class StreamReassembler {
 
     std::map<size_t, size_t> ranges;
     std::unique_ptr<char[]> buffer;
-    
-
-    StreamReassembler(const StreamReassembler&);
-    bool operator=(const StreamReassembler&);
 
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
