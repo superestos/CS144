@@ -14,8 +14,7 @@
 class ByteStream {
   public:
     //! Construct a stream with room for `capacity` bytes.
-    ByteStream(const size_t capacity): buffer(new char[capacity+1]), size(capacity+1), \
-     front(0), back(0), total_read(0), total_written(0), end(false) {};
+    ByteStream(const size_t capacity): buffer(std::string("")), _capacity(capacity), total_read(0), total_written(0), end(false) {};
 
     //! \name "Input" interface for the writer
     //!@{
@@ -76,15 +75,11 @@ class ByteStream {
     //!@}
 
   private:
-    std::unique_ptr<char[]> buffer;
-    size_t size;
-    size_t front;
-    size_t back;
+    std::string buffer;
+    size_t _capacity;
     mutable size_t total_read;
     mutable size_t total_written;
     bool end;
-
-    // Your code here -- add private members as necessary.
 
     // Hint: This doesn't need to be a sophisticated data structure at
     // all, but if any of your tests are taking longer than a second,

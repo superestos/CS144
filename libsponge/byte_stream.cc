@@ -14,31 +14,22 @@ using namespace std;
 
 size_t ByteStream::write(const string &data) {
     size_t copy_size = std::min(remaining_capacity(), data.length());
-    const char *s = data.data();
-    for(size_t i=0; i<copy_size; i++) {
-        buffer[front] = s[i];
-        front = (front + 1) % size;
-    }
-
+    buffer += data.substr(0, copy_size);
     total_written += copy_size;
     return copy_size;
 }
 
 //! \param[in] len bytes will be copied from the output side of the buffer
 string ByteStream::peek_output(const size_t len) const {
-    std::string s;
     size_t copy_size = std::min(len, buffer_size());
-    for(size_t i=0; i<copy_size; i++) {
-        s.push_back(buffer[(back + i) % size]);
-    }
-
+    std::string s = buffer.substr(0, copy_size);
     return s;
 }
 
 //! \param[in] len bytes will be removed from the output side of the buffer
 void ByteStream::pop_output(const size_t len) { 
     size_t pop_size = std::min(len, buffer_size());
-    back = (back + pop_size) % size;
+    buffer.erase(0, pop_size);
     total_read += pop_size;
 }
 
@@ -46,13 +37,9 @@ void ByteStream::pop_output(const size_t len) {
 //! \param[in] len bytes will be popped and returned
 //! \returns a string
 std::string ByteStream::read(const size_t len) {
-    std::string s;
     size_t copy_size = std::min(len, buffer_size());
-    for(size_t i=0; i<copy_size; i++) {
-        s.push_back(buffer[back]);
-        back = (back + 1) % size;
-    }
-
+    std::string s = buffer.substr(0, copy_size);
+    buffer.erase(0, copy_size);
     total_read += copy_size;
     return s;
 }
@@ -66,11 +53,11 @@ bool ByteStream::input_ended() const {
 }
 
 size_t ByteStream::buffer_size() const { 
-    return (front - back + size) % size; 
+    return buffer.length();
 }
 
 bool ByteStream::buffer_empty() const { 
-    return front == back;
+    return buffer_size() == 0;
 }
 
 bool ByteStream::eof() const { 
@@ -86,5 +73,5 @@ size_t ByteStream::bytes_read() const {
 }
 
 size_t ByteStream::remaining_capacity() const { 
-    return size - 1 - buffer_size(); 
+    return _capacity - buffer_size(); 
 }
