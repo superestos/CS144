@@ -105,8 +105,11 @@ size_t TCPConnection::write(const string &data) {
 void TCPConnection::tick(const size_t ms_since_last_tick) {
     _received_timer += ms_since_last_tick;
     _sender.tick(ms_since_last_tick);
-    segment_sent(false);
-
+    /*
+    if (_sender.segments_out().size() > 0) {
+        segment_sent(false);
+    }
+    */
     if(_sender.consecutive_retransmissions() > TCPConfig::MAX_RETX_ATTEMPTS) {
         _sender.send_empty_segment();
         segment_sent(true);

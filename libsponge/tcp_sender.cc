@@ -134,7 +134,7 @@ unsigned int TCPSender::consecutive_retransmissions() const {
 void TCPSender::send_empty_segment() {
     TCPSegment segment; 
     segment.header().seqno = wrap(_next_seqno, _isn);
-    /*
+    
     if(SYN_condition()) {
         segment.header().syn = true;
         connection_state = SYN_SENT;
@@ -146,7 +146,7 @@ void TCPSender::send_empty_segment() {
         connection_state = FIN_SENT;
         _next_seqno++;
     }
-    */
+    
     _segments_out.push(segment);
     _unack_segments.push_back(segment);
 }
