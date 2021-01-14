@@ -27,11 +27,11 @@ size_t TCPConnection::unassembled_bytes() const {
 size_t TCPConnection::time_since_last_segment_received() const {
     return _received_timer;
 }
-
+/*
 bool TCPConnection::closed_condition() const {
     return _receiver.unassembled_bytes() == 0 && _receiver.stream_out().eof() && _sender.stream_in().eof() && _sender.bytes_in_flight() == 0;
 }
-
+*/
 void TCPConnection::segment_received(const TCPSegment &seg) {
     _received_timer = 0;
 
@@ -48,12 +48,13 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     }
     _receiver.segment_received(seg);
 
-    if(!closed_condition() && seg.length_in_sequence_space() > 0) {
+    if(seg.length_in_sequence_space() > 0) {
         _sender.send_empty_segment();
         segment_sent(false);
     }
-
-    if(seg.header().fin) {
+    
+    // passive closed side
+    if(seg.header().fin && !_sender.stream_in().eof()) {
         _linger_after_streams_finish = false;
     }
 }
@@ -74,10 +75,11 @@ void TCPConnection::segment_sent(bool rst) {
     
     seg.header().rst = rst;
     _segments_out.push(seg);
-
+    /*
     if(seg.header().fin && _sender.stream_in().input_ended()) {
         _linger_after_streams_finish = false;
     }
+    */
 }
 
 bool TCPConnection::active() const {
@@ -92,7 +94,6 @@ bool TCPConnection::active() const {
          (!_linger_after_streams_finish || time_since_last_segment_received() >= 10 * _cfg.rt_timeout) ) {
         return false;
     }
-
 
     return true;
 }
@@ -110,14 +111,14 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     _received_timer += ms_since_last_tick;
     _sender.tick(ms_since_last_tick);
     
-    if (_sender.segments_out().size() > 0) {
-        segment_sent(false);
-    }
-    
-    if(_sender.consecutive_retransmissions() > TCPConfig::MAX_RETX_ATTEMPTS) {
+    if(_sender.consecutive_retransmissions() > _cfg.MAX_RETX_ATTEMPTS) {
         _sender.send_empty_segment();
         segment_sent(true);
     }
+    else if (_sender.segments_out().size() > 0) {
+        segment_sent(false);
+    }
+
     if(!_linger_after_streams_finish || time_since_last_segment_received() >= 10 * _cfg.rt_timeout) {
         _receiver.stream_out().input_ended();
     }

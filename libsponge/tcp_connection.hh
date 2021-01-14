@@ -23,7 +23,7 @@ class TCPConnection {
 
     size_t _received_timer{0};
 
-    bool closed_condition() const;
+    //bool closed_condition() const;
 
     void segment_sent(bool rst);
 
