@@ -35,15 +35,20 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         reset(false);
     }
 
+    // sender get ack to continue send data
     if(seg.header().ack) {
         _sender.ack_received(seg.header().ackno, seg.header().win);
         if (!_sender.stream_in().buffer_empty()) {
             _sender.fill_window();
-            segment_sent(false);
+            while(!_sender.segments_out().empty())
+                segment_sent(false);
         }
     }
+
+    // receiver get data
     _receiver.segment_received(seg);
 
+    // ack segment
     if(seg.length_in_sequence_space() > 0) {
         _sender.send_empty_segment();
         segment_sent(false);
@@ -52,6 +57,7 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     // passive closed side
     if(seg.header().fin && !_sender.stream_in().eof()) {
         _linger_after_streams_finish = false;
+        _receiver.stream_out().input_ended();
     }
 }
 
@@ -63,6 +69,7 @@ void TCPConnection::segment_sent(bool rst) {
     auto seg = _sender.segments_out().front();
     _sender.segments_out().pop();
 
+    // append receiver ack and windows size
     if(!rst && _receiver.ackno().has_value()) {
         seg.header().ack = true;
         seg.header().ackno = _receiver.ackno().value();
@@ -102,20 +109,22 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     _received_timer += ms_since_last_tick;
     _sender.tick(ms_since_last_tick);
     
+    // too much attempts to retransmiss, abort
     if(_sender.consecutive_retransmissions() > _cfg.MAX_RETX_ATTEMPTS) {
         reset(true);
     }
+    // resend segment
     else if (_sender.segments_out().size() > 0) {
         segment_sent(false);
     }
-
-    if(!_linger_after_streams_finish || time_since_last_segment_received() >= 10 * _cfg.rt_timeout) {
+    // no more received segment, stop lingering
+    if(_linger_after_streams_finish && time_since_last_segment_received() >= 10 * _cfg.rt_timeout) {
         _receiver.stream_out().input_ended();
     }
 }
 
 void TCPConnection::end_input_stream() {
-    _sender.stream_in().end_input();
+    _sender.stream_in().end_input(); // active closed
     _sender.fill_window();
     segment_sent(false);
 }
