@@ -27,11 +27,7 @@ size_t TCPConnection::unassembled_bytes() const {
 size_t TCPConnection::time_since_last_segment_received() const {
     return _received_timer;
 }
-/*
-bool TCPConnection::closed_condition() const {
-    return _receiver.unassembled_bytes() == 0 && _receiver.stream_out().eof() && _sender.stream_in().eof() && _sender.bytes_in_flight() == 0;
-}
-*/
+
 void TCPConnection::segment_received(const TCPSegment &seg) {
     _received_timer = 0;
 
@@ -75,11 +71,6 @@ void TCPConnection::segment_sent(bool rst) {
     
     seg.header().rst = rst;
     _segments_out.push(seg);
-    /*
-    if(seg.header().fin && _sender.stream_in().input_ended()) {
-        _linger_after_streams_finish = false;
-    }
-    */
 }
 
 bool TCPConnection::active() const {
@@ -112,10 +103,6 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     _sender.tick(ms_since_last_tick);
     
     if(_sender.consecutive_retransmissions() > _cfg.MAX_RETX_ATTEMPTS) {
-        /*
-        _sender.send_empty_segment();
-        segment_sent(true);
-        */
         reset(true);
     }
     else if (_sender.segments_out().size() > 0) {
