@@ -148,5 +148,5 @@ void TCPSender::send_empty_segment() {
     }
     
     _segments_out.push(segment);
-    _unack_segments.push_back(segment);
+    //_unack_segments.push_back(segment);
 }
