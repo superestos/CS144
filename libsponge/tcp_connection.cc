@@ -41,6 +41,10 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
 
     if(seg.header().ack) {
         _sender.ack_received(seg.header().ackno, seg.header().win);
+        if (!_sender.stream_in().buffer_empty()) {
+            _sender.fill_window();
+            segment_sent(false);
+        }
     }
     _receiver.segment_received(seg);
 
