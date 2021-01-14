@@ -112,8 +112,11 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     _sender.tick(ms_since_last_tick);
     
     if(_sender.consecutive_retransmissions() > _cfg.MAX_RETX_ATTEMPTS) {
+        /*
         _sender.send_empty_segment();
         segment_sent(true);
+        */
+        reset(true);
     }
     else if (_sender.segments_out().size() > 0) {
         segment_sent(false);
