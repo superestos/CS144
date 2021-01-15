@@ -1,7 +1,5 @@
 #include "stream_reassembler.hh"
 
-#include <iostream>
-
 // Dummy implementation of a stream reassembler.
 
 // For Lab 1, please replace with a real implementation that passes the
@@ -29,42 +27,45 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
 
     size_t begin = std::max(index, total_assembled);
     size_t end = std::max(std::min(index + data.length(), _output.bytes_read() + _capacity), begin);    
+    std::string s = data.substr(begin - index, end - begin);
 
     if(ranges.count(begin) == 0 || ranges[begin] < end) {
         ranges[begin] = end;
-    }
-    //string str = data.substr(begin - index, end - begin);
-    //std::cout << str << std::endl;
-    for(size_t i=begin; i<end; i++) {
-        buffer[(i % _capacity)] = data[i - index];
     }
 
     auto it = ranges.find(begin);
     if (it != ranges.begin()) {
         it--;
         if(it->second >= begin) {
+            if(end > it->second) {
+                s = buffer[it->first].substr(0, begin - it->first) + s;
+            }
+            else {
+                s = buffer[it->first];
+                end = it->second;
+            }
             begin = it->first;
-            it->second = std::max(end, it->second);
             ranges.erase(++it);
         }
     }
 
     it = ranges.find(begin);
     for(; it != ranges.end() && end >= it->first;) {
-        end = std::max(end, it->second);
+        if(end < it->second) {
+            s += buffer[it->first].substr(end - it->first);
+            end = it->second;
+        }
+        buffer.erase(it->first);
         ranges.erase(it++);
     }
-    ranges[begin] = end;
 
     if(begin == total_assembled) { // put contiguous string in stream
-        total_assembled = end;
-        ranges.erase(begin);
-
-        string s;
-        for(size_t i=begin; i<total_assembled; i++) {
-            s.push_back(buffer[i % _capacity]);
-        }
         _output.write(s);
+        total_assembled = end;
+    }
+    else {
+        ranges[begin] = end;
+        buffer[begin] = s;
     }
 
     if(_eof && eof_end == total_assembled) {

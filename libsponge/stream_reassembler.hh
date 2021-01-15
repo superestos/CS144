@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <unordered_map>
 
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
 //! possibly overlapping) into an in-order byte stream.
@@ -21,14 +22,14 @@ class StreamReassembler {
     size_t eof_end;
 
     std::map<size_t, size_t> ranges;
-    std::unique_ptr<char[]> buffer;
+    std::unordered_map<size_t, std::string> buffer;
 
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
     //! \note This capacity limits both the bytes that have been reassembled,
     //! and those that have not yet been reassembled.
     StreamReassembler(const size_t capacity): _output(capacity), _capacity(capacity),
-     total_assembled(0), _eof(false), eof_end(0), ranges(), buffer(new char[capacity]) {};
+     total_assembled(0), _eof(false), eof_end(0), ranges(), buffer() {};
 
     //! \brief Receive a substring and write any newly contiguous bytes into the stream.
     //!
