@@ -1,5 +1,7 @@
 #include "stream_reassembler.hh"
 
+#include <iostream>
+
 // Dummy implementation of a stream reassembler.
 
 // For Lab 1, please replace with a real implementation that passes the
@@ -16,12 +18,23 @@ using namespace std;
 //! possibly out-of-order, from the logical stream, and assembles any newly
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
+    if(eof) { // dealing with the end of file
+        eof_end = index + data.length();
+        _eof = true;
+    }
+
+    if(total_assembled > data.length() + index) {
+        return;
+    }
+
     size_t begin = std::max(index, total_assembled);
-    size_t end = std::max(std::min(index + data.length(), _output.bytes_read() + _capacity), begin);
+    size_t end = std::max(std::min(index + data.length(), _output.bytes_read() + _capacity), begin);    
+
     if(ranges.count(begin) == 0 || ranges[begin] < end) {
         ranges[begin] = end;
     }
-
+    //string str = data.substr(begin - index, end - begin);
+    //std::cout << str << std::endl;
     for(size_t i=begin; i<end; i++) {
         buffer[(i % _capacity)] = data[i - index];
     }
@@ -54,10 +67,6 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         _output.write(s);
     }
 
-    if(eof) { // dealing with the end of file
-        eof_end = index + data.length();
-        _eof = true;
-    }
     if(_eof && eof_end == total_assembled) {
         _output.end_input();
     }
