@@ -55,9 +55,11 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     }
     
     // passive closed side
-    if(seg.header().fin && !_sender.stream_in().eof()) {
-        _linger_after_streams_finish = false;
-        _receiver.stream_out().input_ended();
+    if(seg.header().fin) {
+        if(!_sender.stream_in().eof()) {
+            _linger_after_streams_finish = false;
+        }
+        _receiver.stream_out().end_input();
     }
 }
 
@@ -118,9 +120,13 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
         segment_sent(false);
     }
     // no more received segment, stop lingering
+    /*
     if(_linger_after_streams_finish && time_since_last_segment_received() >= 10 * _cfg.rt_timeout) {
-        _receiver.stream_out().input_ended();
+        if (_sender.stream_in().eof() && _sender.bytes_in_flight() == 0 && _sender.next_seqno_absolute() == _sender.stream_in().bytes_written() + 2 && _receiver.unassembled_bytes() == 0) {
+            _receiver.stream_out().end_input();
+        }
     }
+    */
 }
 
 void TCPConnection::end_input_stream() {
