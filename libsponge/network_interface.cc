@@ -33,12 +33,37 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     // convert IP address of next hop to raw 32-bit representation (used in ARP header)
     const uint32_t next_hop_ip = next_hop.ipv4_numeric();
 
+    EthernetFrame frame;
+    ARPMessage arp;
+    arp.opcode = ARPMessage::OPCODE_REQUEST;
+    arp.sender_ethernet_address = _ethernet_address;
+    arp.sender_ip_address = _ip_address.ipv4_numeric();
+    arp.target_ip_address = next_hop_ip;
+
+    frame.payload() = arp.serialize();
+
+    EthernetHeader header;
+    header.src = _ethernet_address;
+    header.dst = ETHERNET_BROADCAST;
+    header.type = EthernetHeader::TYPE_ARP;
+
+    frame.header() = header;
+
+    _frames_out.push(frame);
+
     DUMMY_CODE(dgram, next_hop, next_hop_ip);
 }
 
 //! \param[in] frame the incoming Ethernet frame
 optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &frame) {
     DUMMY_CODE(frame);
+
+    EthernetHeader header = frame.header();
+    if (header.type == EthernetHeader::TYPE_ARP) {
+        ARPMessage arp;
+        arp.parse(frame.payload());
+    }
+
     return {};
 }
 
