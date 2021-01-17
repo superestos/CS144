@@ -44,10 +44,17 @@ class Router {
     //! The router's collection of network interfaces
     std::vector<AsyncNetworkInterface> _interfaces{};
 
+    static const uint8_t IPv4_LENGTH = 32;
+
+    std::array<std::unordered_map<uint32_t, std::pair<size_t, std::optional<Address>>>, IPv4_LENGTH + 1> route_table{};
+    std::optional<std::pair<size_t, std::optional<Address>>> default_route{};
+
     //! Send a single datagram from the appropriate outbound interface to the next hop,
     //! as specified by the route with the longest prefix_length that matches the
     //! datagram's destination address.
     void route_one_datagram(InternetDatagram &dgram);
+
+    void send_datagram_to_interface(InternetDatagram &dgram, std::pair<size_t, std::optional<Address>> route);
 
   public:
     //! Add an interface to the router
