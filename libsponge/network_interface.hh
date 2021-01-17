@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <queue>
+#include <unordered_map>
 
 //! \brief A "network interface" that connects IP (the internet layer, or network layer)
 //! with Ethernet (the network access layer, or link layer).
@@ -39,6 +40,14 @@ class NetworkInterface {
 
     //! outbound queue of Ethernet frames that the NetworkInterface wants sent
     std::queue<EthernetFrame> _frames_out{};
+
+    std::unordered_map<uint32_t, std::pair<EthernetAddress, size_t>> translator{};
+    std::unordered_map<uint32_t, std::queue<std::pair<InternetDatagram, Address>>> unsent_packets{};
+
+    size_t current_time{0};
+
+    static const size_t TIMEOUT_FOR_APR_STORAGE = 30000;
+    static const size_t TIMEOUT_FOR_APR_REQUEST = 5000;
 
   public:
     //! \brief Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer) addresses
