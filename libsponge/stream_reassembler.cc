@@ -19,28 +19,24 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     if(eof) { // dealing with the end of file
         eof_end = index + data.length();
         _eof = true;
-    }
-
-    if(_eof && eof_end == total_assembled) {
-        _output.end_input();
-    }
-
-    if(total_assembled > data.length() + index) { // we have assembled this string
-        return;
+        if(_eof && eof_end == total_assembled) {
+            _output.end_input();
+        }
     }
 
     size_t begin = std::max(index, total_assembled);
     size_t end = std::min(index + data.length(), _output.bytes_read() + _capacity);
     if (begin >= end) {
+        // cannot not fit into reassembler
         return;
     }
     std::string s = data.substr(begin - index, end - begin);
-    
 
     if(ranges.count(begin) == 0 || ranges[begin] < end) {
         ranges[begin] = end;
     }
     else {
+        // exist string that overlap the whole data
         return;
     }
 
@@ -53,6 +49,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
                 s = buffer[it->first].substr(0, begin - it->first) + s;
             }
             else {
+                // exist string that overlap the whole data
                 ranges.erase(++it);
                 return;
             }
@@ -61,10 +58,10 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         }
     }
 
-    // find string that overlap the tail of current data
+    // find strings that overlap the tail of current data
     it = ranges.find(begin);
-    for(; it != ranges.end() && end >= it->first;) {
-        if(end < it->second) {
+    for (; it != ranges.end() && end >= it->first;) {
+        if (end < it->second) {
             s += buffer[it->first].substr(end - it->first);
             end = it->second;
         }
@@ -72,7 +69,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         ranges.erase(it++);
     }
 
-    if(begin == total_assembled) { // put contiguous string in stream
+    if (begin == total_assembled) { // put contiguous string in stream
         _output.write(s);
         total_assembled = end;
     }
@@ -81,7 +78,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         buffer[begin] = s;
     }
 
-    if(_eof && eof_end == total_assembled) {
+    if (_eof && eof_end == total_assembled) {
         _output.end_input();
     }
 }
@@ -89,7 +86,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
 size_t StreamReassembler::unassembled_bytes() const { 
     size_t sum = 0;
     
-    for(auto it: ranges) {
+    for (auto it: ranges) {
         sum += it.second - it.first;
     }
     return sum; 
