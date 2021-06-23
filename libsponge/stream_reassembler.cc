@@ -19,20 +19,28 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     if(eof) { // dealing with the end of file
         eof_end = index + data.length();
         _eof = true;
+        if(_eof && eof_end == total_assembled) {
+            _output.end_input();
+        }
     }
 
-    if(total_assembled > data.length() + index) {
+    if(total_assembled > data.length() + index) { // we have assembled this string
         return;
     }
 
     size_t begin = std::max(index, total_assembled);
-    size_t end = std::max(std::min(index + data.length(), _output.bytes_read() + _capacity), begin);    
+    size_t end = std::min(index + data.length(), _output.bytes_read() + _capacity);
+    if (begin >= end) {
+        return;
+    }
     std::string s = data.substr(begin - index, end - begin);
+    
 
     if(ranges.count(begin) == 0 || ranges[begin] < end) {
         ranges[begin] = end;
     }
 
+    // find string that overlap the head of current data
     auto it = ranges.find(begin);
     if (it != ranges.begin()) {
         it--;
@@ -41,14 +49,19 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
                 s = buffer[it->first].substr(0, begin - it->first) + s;
             }
             else {
-                s = buffer[it->first];
-                end = it->second;
+                
+                //s = buffer[it->first];
+                //end = it->second;
+                
+                ranges.erase(++it);
+                return;
             }
             begin = it->first;
             ranges.erase(++it);
         }
     }
 
+    // find string that overlap the tail of current data
     it = ranges.find(begin);
     for(; it != ranges.end() && end >= it->first;) {
         if(end < it->second) {
