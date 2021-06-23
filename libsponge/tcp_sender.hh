@@ -48,8 +48,11 @@ class TCPSender {
 
     enum ConnectionState {CLOSED, SYN_SENT, FIN_SENT} connection_state{CLOSED};
 
-    bool SYN_condition();
-    bool FIN_condition();
+    bool isSYN();
+    bool isFIN();
+
+    void setSYN(TCPSegment &segment);
+    void setFIN(TCPSegment &segment);
 
     void send_new_segment();
 

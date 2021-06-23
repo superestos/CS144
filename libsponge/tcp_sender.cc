@@ -28,50 +28,59 @@ uint64_t TCPSender::bytes_in_flight() const {
     return _next_seqno - _ack_seqno; 
 }
 
-bool TCPSender::SYN_condition() {
+bool TCPSender::isSYN() {
     return connection_state == CLOSED;
 }
 
-bool TCPSender::FIN_condition() {
+bool TCPSender::isFIN() {
+    // FIN flag may occupies windows space
     return connection_state == SYN_SENT && _stream.eof() && _windows_size > bytes_in_flight();
+}
+
+void TCPSender::setSYN(TCPSegment &segment) {
+    if (isSYN()) {
+        segment.header().syn = true;
+        connection_state = SYN_SENT;
+        _next_seqno++;
+    }
+}
+
+void TCPSender::setFIN(TCPSegment &segment) {
+    if (isFIN()) {
+        segment.header().fin = true;
+        connection_state = FIN_SENT;
+        _next_seqno++;
+    }
 }
 
 void TCPSender::send_new_segment() {
     TCPSegment segment;
     segment.header().seqno = wrap(_next_seqno, _isn);
 
-    if(SYN_condition()) {
-        segment.header().syn = true;
-        connection_state = SYN_SENT;
-        _next_seqno++;
-    }
+    setSYN(segment);
 
     size_t len = std::min(_windows_size - bytes_in_flight(), TCPConfig::MAX_PAYLOAD_SIZE);
     segment.payload() = _stream.read(len);
     _next_seqno += segment.payload().size();
 
-    if(FIN_condition()) {
-        segment.header().fin = true;
-        connection_state = FIN_SENT;
-        _next_seqno++;
-    }
+    setFIN(segment);
 
     _segments_out.push(segment);
     _unack_segments.push_back(segment);
 }
 
 void TCPSender::fill_window() {
-    while((bytes_in_flight() < _windows_size && !_stream.buffer_empty()) || SYN_condition() || FIN_condition()) {
+    while ((bytes_in_flight() < _windows_size && !_stream.buffer_empty()) || isSYN() || isFIN()) {
         send_new_segment();
     }
 
-    if(_windows_size == 0 && bytes_in_flight() == 0) {
+    if (_windows_size == 0 && bytes_in_flight() == 0) {
         _windows_size = 1;
         send_new_segment();
         _windows_size = 0;
     }
 
-    if(_timer == 0) {
+    if (_timer == 0) {
         _timer = _rto;
     } 
 }
@@ -81,18 +90,18 @@ void TCPSender::fill_window() {
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
     uint64_t ack_seqno = unwrap(ackno, _isn, _stream.bytes_read());
     _windows_size = window_size;
-    if(ack_seqno > _next_seqno || ack_seqno <= _ack_seqno) {
+    if (ack_seqno > _next_seqno || ack_seqno <= _ack_seqno) {
         return;
     }
 
     _ack_seqno = ack_seqno;
     _consecutive_retransmissions = 0;
 
-    for(auto it = _unack_segments.begin(); it != _unack_segments.end();) {
+    for (auto it = _unack_segments.begin(); it != _unack_segments.end();) {
         auto segment = *it;
         uint64_t seqno = unwrap(segment.header().seqno, _isn, _stream.bytes_read());
 
-        if(ack_seqno >= seqno + segment.length_in_sequence_space()) {
+        if (ack_seqno >= seqno + segment.length_in_sequence_space()) {
             _unack_segments.erase(it++);
         }
         else {
@@ -100,8 +109,8 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         }
     }
 
-    _rto= _initial_retransmission_timeout;
-    if(_unack_segments.empty()) {
+    _rto = _initial_retransmission_timeout;
+    if (_unack_segments.empty()) {
         _timer = 0;
     }  
     else {
@@ -111,13 +120,13 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) { 
-    if(_timer > ms_since_last_tick) {
+    if (_timer > ms_since_last_tick) {
         _timer -= ms_since_last_tick;
         return;
     }
     
-    if(!_unack_segments.empty()) {
-        if(_windows_size > 0)
+    if (!_unack_segments.empty()) {
+        if (_windows_size > 0)
             _rto *= 2;
 
         _consecutive_retransmissions++;
@@ -135,17 +144,8 @@ void TCPSender::send_empty_segment() {
     TCPSegment segment; 
     segment.header().seqno = wrap(_next_seqno, _isn);
     
-    if(SYN_condition()) {
-        segment.header().syn = true;
-        connection_state = SYN_SENT;
-        _next_seqno++;
-    }
-
-    if(FIN_condition()) {
-        segment.header().fin = true;
-        connection_state = FIN_SENT;
-        _next_seqno++;
-    }
+    setSYN(segment);
+    setFIN(segment);
     
     _segments_out.push(segment);
     //_unack_segments.push_back(segment);
