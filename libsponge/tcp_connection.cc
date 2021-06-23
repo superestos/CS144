@@ -94,7 +94,7 @@ bool TCPConnection::active() const {
 
     //clean shutdown
     if ( (_sender.stream_in().eof() && _sender.bytes_in_flight() == 0 && _sender.next_seqno_absolute() == _sender.stream_in().bytes_written() + 2 ) &&
-         (_receiver.stream_out().input_ended()) &&
+         (_receiver.stream_out().input_ended() && _receiver.unassembled_bytes() == 0) &&
          (!_linger_after_streams_finish || time_since_last_segment_received() >= 10 * _cfg.rt_timeout) ) {
         return false;
     }
