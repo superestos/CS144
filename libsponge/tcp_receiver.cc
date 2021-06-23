@@ -12,22 +12,21 @@ using namespace std;
 
 void TCPReceiver::segment_received(const TCPSegment &seg) {
 
-    if(connection_state == LISTEN && seg.header().syn) { // handle syn and fin
+    if(connection_state == LISTEN && seg.header().syn) {
         connection_state = SYN_RECV;
         _isn = seg.header().seqno;
         _absolute_shift = 0;
-    }
-    if(connection_state == SYN_RECV && seg.header().fin) {
-        connection_state = FIN_RECV;
     }
 
     size_t absolute_seqno = unwrap(seg.header().seqno, _isn, _reassembler.assembled_bytes());
     _reassembler.push_substring(seg.payload().copy(), absolute_seqno - _absolute_shift, seg.header().fin);
 
-    _absolute_shift += (seg.header().syn ? 1 : 0);
+    if (seg.header().syn && _absolute_shift == 0) {
+        _absolute_shift = 1;
+    }
 
-    if(_reassembler.empty() && connection_state == FIN_RECV) {
-        _absolute_shift += 1;
+    if(_reassembler.stream_out().input_ended() && _absolute_shift == 1) {
+        _absolute_shift = 2;
     }
 }
 

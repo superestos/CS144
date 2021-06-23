@@ -19,9 +19,10 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     if(eof) { // dealing with the end of file
         eof_end = index + data.length();
         _eof = true;
-        if(_eof && eof_end == total_assembled) {
-            _output.end_input();
-        }
+    }
+
+    if(_eof && eof_end == total_assembled) {
+        _output.end_input();
     }
 
     if(total_assembled > data.length() + index) { // we have assembled this string
@@ -39,6 +40,9 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     if(ranges.count(begin) == 0 || ranges[begin] < end) {
         ranges[begin] = end;
     }
+    else {
+        return;
+    }
 
     // find string that overlap the head of current data
     auto it = ranges.find(begin);
@@ -49,10 +53,6 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
                 s = buffer[it->first].substr(0, begin - it->first) + s;
             }
             else {
-                
-                //s = buffer[it->first];
-                //end = it->second;
-                
                 ranges.erase(++it);
                 return;
             }
