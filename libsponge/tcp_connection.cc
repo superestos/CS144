@@ -12,6 +12,25 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 
 using namespace std;
 
+static void debugPrintSegment(const TCPSegment &segment, std::string &&header) {
+    cerr << "DEBUG: " << header;
+    cerr << " len: " << segment.payload().str().size();
+    cerr << " seq: " << segment.header().seqno;
+    if (segment.header().ack) {
+        cerr << " ack: " << segment.header().ackno;
+    }
+    if (segment.header().syn) {
+        cerr << " syn ";
+    }
+    if (segment.header().fin) {
+        cerr << " fin ";
+    }
+    if (segment.header().rst) {
+        cerr << " rst ";
+    }
+    cerr << endl;
+}
+
 size_t TCPConnection::remaining_outbound_capacity() const { 
     return _sender.stream_in().remaining_capacity(); 
 }
@@ -84,6 +103,8 @@ void TCPConnection::segment_sent(bool rst) {
     if(seg.header().fin) {
         _fin_sent = true;
     }
+
+    debugPrintSegment(seg, string("send segment"));
 }
 
 bool TCPConnection::active() const {
