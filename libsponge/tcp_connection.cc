@@ -12,6 +12,7 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 
 using namespace std;
 
+/*
 static void debugPrintSegment(const TCPSegment &segment, std::string &&header) {
     cerr << "DEBUG: " << header;
     cerr << " len: " << segment.payload().str().size();
@@ -30,6 +31,7 @@ static void debugPrintSegment(const TCPSegment &segment, std::string &&header) {
     }
     cerr << endl;
 }
+*/
 
 size_t TCPConnection::remaining_outbound_capacity() const { 
     return _sender.stream_in().remaining_capacity(); 
@@ -57,7 +59,9 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     // sender get ack to continue send data
     if(seg.header().ack) {
         _sender.ack_received(seg.header().ackno, seg.header().win);
-        if (!_sender.stream_in().buffer_empty()) {
+
+        // fill window when in-stream is not empty or in-stream is eof !!!
+        if (!_sender.stream_in().buffer_empty() || _sender.stream_in().input_ended()) {
             _sender.fill_window();
             while(!_sender.segments_out().empty())
                 segment_sent(false);
@@ -104,7 +108,7 @@ void TCPConnection::segment_sent(bool rst) {
         _fin_sent = true;
     }
 
-    debugPrintSegment(seg, string("send segment"));
+    // debugPrintSegment(seg, string("send segment"));
 }
 
 bool TCPConnection::active() const {
