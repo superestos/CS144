@@ -152,7 +152,7 @@ void TCPSender::send_empty_segment() {
     segment.header().seqno = wrap(_next_seqno, _isn);
     
     setSYN(segment);
-    setFIN(segment);
+    //setFIN(segment);
     
     _segments_out.push(segment);
     /*
