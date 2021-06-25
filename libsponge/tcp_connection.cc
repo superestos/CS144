@@ -77,13 +77,14 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         segment_sent(false);
     }
     
-    // passive closed side
+    // do not linger because other side send fin first
     if(seg.header().fin) {
         if(!_fin_sent) {
             _linger_after_streams_finish = false;
         }
-        _receiver.stream_out().end_input();
     }
+
+    //debugPrintSegment(seg, string("recv segment"));
 }
 
 void TCPConnection::segment_sent(bool rst) {
@@ -108,7 +109,7 @@ void TCPConnection::segment_sent(bool rst) {
         _fin_sent = true;
     }
 
-    // debugPrintSegment(seg, string("send segment"));
+    //debugPrintSegment(seg, string("send segment"));
 }
 
 bool TCPConnection::active() const {
