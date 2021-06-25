@@ -64,20 +64,20 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     // sender get ack to continue send data
     if(seg.header().ack) {
         _sender.ack_received(seg.header().ackno, seg.header().win);
-
-        // fill window when in-stream is not empty or in-stream is eof !!!
-        if (!_sender.stream_in().buffer_empty() || _sender.stream_in().input_ended()) {
-            _sender.fill_window();
-            while(!_sender.segments_out().empty())
-                segment_sent(false);
-        }
     }
 
-    // ack segment
-    if(seg.length_in_sequence_space() > 0) {
+    // fill window when in-stream is not empty or in-stream is eof !!!
+    if (seg.header().syn || !_sender.stream_in().buffer_empty() || _sender.stream_in().input_ended()) {
+        _sender.fill_window();
+    }
+
+    // ack segments that contain useful info. avoid double ack.
+    if(_sender.segments_out().empty() && seg.length_in_sequence_space() > 0) {
         _sender.send_empty_segment();
-        segment_sent(false);
     }
+
+    while(!_sender.segments_out().empty())
+        segment_sent(false);
     
     // do not linger because other side send fin first
     if(seg.header().fin) {
