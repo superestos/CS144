@@ -11,8 +11,8 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 using namespace std;
 
 void TCPReceiver::segment_received(const TCPSegment &seg) {
-
-    if (connection_state == LISTEN && seg.header().syn) {
+    // init isn with syn comes to avoid other side send multiple sync
+    if (seg.header().syn) {
         connection_state = SYN_RECV;
         _isn = seg.header().seqno;
         _absolute_shift = 0;
@@ -24,7 +24,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     size_t absolute_seqno = unwrap(seg.header().seqno, _isn, _reassembler.assembled_bytes());
     _reassembler.push_substring(seg.payload().copy(), absolute_seqno - _absolute_shift, seg.header().fin);
 
-    _absolute_shift += (seg.header().syn && _absolute_shift == 0? 1: 0);
+    _absolute_shift += (seg.header().syn? 1: 0);
     
     // no more data to assembled
     if(_reassembler.empty() && connection_state == FIN_RECV) {
